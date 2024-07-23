@@ -1,4 +1,4 @@
-#install python<=3.10
+# install python<=3.10
 
 
 import json
@@ -35,6 +35,22 @@ class Library:
             library = []
         self.library = library
         self.path = path
+
+    def __enter__(self):
+        self.library = self.load_library()  # загрузить из файла на входе
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.save_library()  # сохранить в файл на выходе
+
+    def load_library(self):
+        with open(self.path, 'r') as f:
+            self.library = json.loads(f.read())
+        return self.library
+
+    def save_library(self):
+        with open(self.path, 'w', encoding='utf-8') as f:
+            f.write(json.dumps(self.library))
 
     def add_book(self, title: str, author: str, year: int) -> str:
         """
@@ -155,8 +171,6 @@ def running_app():
             case _:
                 print('Вы ввели не верное значение, попробуем все заново')
                 running_app()
-
-
 
 
 def main():
