@@ -1,6 +1,6 @@
 # install python<=3.10
 
-
+import argparse
 import json
 
 FOLDER = 'lib.json'
@@ -76,11 +76,11 @@ class Library:
         :param id: id книги
         :return: Сообщение об удалении / Сообщение об ошибки при удалении
         """
-        with Library() as library:
-            for inx, book in enumerate(library.library):
-                if book.id == id:
-                    del library.library[inx]
-                    return f'{library.library} \n Книга удалена успешно'
+
+        for inx, book in enumerate(library.library):
+            if book.id == id:
+                del self.library[inx]
+                return f'{self.library} \n Книга удалена успешно'
 
         return f'Книга с таким id: {id} не найденa'
 
@@ -88,18 +88,10 @@ class Library:
         """
         Этот метод пытается найти файл self.path и прочитать его. Если файл существует, он читает и
         преобразовывает текст файла в объект List
-        :return: list(dict) or str
+        :return: list(Books)
         """
-        # try:
-        #     with Library() as library:
-        #         return library.self.library
-        # except FileNotFoundError:
-        #     return f'Такого файла не существует'
-        # else:
-        #     return json.loads(my_lib)
 
-        with Library() as library:
-            return library.library
+        return self.library
 
     def search_book(self, some_item) -> dict:
         """
@@ -107,17 +99,17 @@ class Library:
         :param some_item: любой возможный аргумент для поиска(по имени, по автору, по году)
         :return: dict
         """
-        with Library() as library:
-            for inx, book in enumerate(library.library):
-                if isinstance(int(some_item), int):
-                    if some_item == book.year:
-                        return book
-                else:
-                    if some_item == book.title:
-                        return book
-                    if some_item == book.author:
-                        return book
+        for inx, book in enumerate(self.library):
+            if isinstance(int(some_item), int):
+                if some_item == book.year:
+                    return book
+            else:
+                if some_item == book.title:
+                    return book
+                if some_item == book.author:
+                    return book
         return 'Такой книги не существует'
+
 
     def change_status(self, id: int, status: str) -> Book:
         """
@@ -126,59 +118,71 @@ class Library:
         :param status: новый статус для книги
         :return: Book
         """
-        with Library() as library:
-            for book in library.library:
-                if id == book.id:
-                    book.status = status
-                    return book
+
+        for book in self.library:
+            if id == book.id:
+                book.status = status
+                return book
 
         return f'Книга с таким id: {id} не найденa'
 
 
-def hello():
-    print('Добро пожаловатьб чтобы вы хотели сделать?')
 
 
-def running_app():
-    print("Чтобы узнать нажмите:")
-    print("(1) - о наличии книг в библиотеке")
-    print("(2) - добавить книгу")
-    print("(3) - найти книгу по автору, по названию или по году выпуска")
-    print("(4) - удалить книгу")
-    print("q - для выхода из приложения")
-    my_lib = Library(FOLDER)
-    while True:
-        a = input('Введите что вы хотите сделать \n')
-        match a:
-            case '1':
-                print(my_lib.load_books())
-            case '2':
-                title = input("Введите название книги: \n")
-                author = input("Введите автора книги \n")
-                try:
-                    year = int(input("Введите год издания книги \n"))
-                except ValueError as e:
-                    print('Вы указали не верный формат года')
-                else:
-                    print(my_lib.add_book(title, author, year))
-            case '3':
-                attribute_search = input('Введите атрибут для поиска книги \n')
-                print(my_lib.search_book(attribute_search))
-            case '4':
-                id_book = int(input('Введите id книги, которую вы хотите удалить'))
-                print(my_lib.delete_book(id_book))
-            case 'q' | 'й':
-                print('Всего хорошего')
-                break
-            case _:
-                print('Вы ввели не верное значение, попробуем все заново')
-                running_app()
+parse = argparse.ArgumentParser("""Чтобы узнать нажмите:
+                                    (l) - о наличии книг в библиотеке,
+                                    (a) - добавить книгу,
+                                    (s) - найти книгу по автору, по названию или по году выпуска,
+                                    (d) - удалить книгу,
+                                    (q) - для выхода из приложения
+                                    """
+                                )
+parse.add_argument('-l', '--load', help='Показывает какие книги есть в библиотеке')
+parse.add_argument('-a', '--add', help='Добавляет книгу в библиотеку')
 
-
-def main():
-    hello()
-    running_app()
-
+# def hello():
+#     print('Добро пожаловатьб чтобы вы хотели сделать?')
+#
+#
+# def running_app():
+#     print("Чтобы узнать нажмите:")
+#     print("(1) - о наличии книг в библиотеке")
+#     print("(2) - добавить книгу")
+#     print("(3) - найти книгу по автору, по названию или по году выпуска")
+#     print("(4) - удалить книгу")
+#     print("q - для выхода из приложения")
+#     my_lib = Library(FOLDER)
+#     while True:
+#         a = input('Введите что вы хотите сделать \n')
+#         match a:
+#             case '1':
+#                 print(my_lib.load_books())
+#             case '2':
+#                 title = input("Введите название книги: \n")
+#                 author = input("Введите автора книги \n")
+#                 try:
+#                     year = int(input("Введите год издания книги \n"))
+#                 except ValueError as e:
+#                     print('Вы указали не верный формат года')
+#                 else:
+#                     print(my_lib.add_book(title, author, year))
+#             case '3':
+#                 attribute_search = input('Введите атрибут для поиска книги \n')
+#                 print(my_lib.search_book(attribute_search))
+#             case '4':
+#                 id_book = int(input('Введите id книги, которую вы хотите удалить'))
+#                 print(my_lib.delete_book(id_book))
+#             case 'q' | 'й':
+#                 print('Всего хорошего')
+#                 break
+#             case _:
+#                 print('Вы ввели не верное значение, попробуем все заново')
+#                 running_app()
+#
+#
+# def main():
+hello()
+running_app()
 
 if __name__ == '__main__':
     main()
