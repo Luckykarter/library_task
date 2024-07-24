@@ -28,6 +28,11 @@ class Book:
         }
         return result
 
+    @classmethod
+    def from_json(cls, some_json):
+        new_book = cls(some_json.get('title'), some_json.get('author'), some_json.get('year'))
+        return new_book
+
 
 class Library:
     def __init__(self, path: str, library: list = None) -> None:
@@ -44,17 +49,18 @@ class Library:
         self.save_library()  # сохранить в файл на выходе
 
     def load_library(self):
-        with open(self.path, 'r') as f:
+        with open(self.path, 'r', encoding='utf-8') as f:
             self.library = json.loads(f.read())
+        self.library = [book.from_json() for book in self.library]
         return self.library
 
     def save_library(self):
         with open(self.path, 'w', encoding='utf-8') as f:
-            f.write(json.dumps(self.library))
+            f.write(json.dumps([book.json() for book in self.library]))
 
     def add_book(self, title: str, author: str, year: int) -> str:
         """
-        Записывает книгу в файл по пути self.path
+        Добавляет книгу в список self.library
         :param title: Название книги
         :param author: Автор
         :param year: Год выпуска
@@ -62,10 +68,7 @@ class Library:
         """
         id_book = len(self.library) + 1
         book = Book(id_book, title, author, year)
-        self.library.append(book.json())
-        with open(self.path, 'w', encoding='utf-8') as file:
-            file.write(json.dumps(self.library, ensure_ascii=False))
-        return f'Книга {book} успешно добавлена'
+        self.library.append(book)
 
     def delete_book(self, id: int) -> str:
         """
@@ -73,13 +76,11 @@ class Library:
         :param id: id книги
         :return: Сообщение об удалении / Сообщение об ошибки при удалении
         """
-        my_lib = self.load_books()
-        for inx, book in enumerate(my_lib):
-            if book.get('id') == id:
-                del my_lib[inx]
-                with open(self.path, 'w', encoding='utf-8') as file:
-                    file.write(json.dumps(my_lib, ensure_ascii=False))
-                return f'{my_lib} \n Книга удалена успешно'
+        with Library() as library:
+            for inx, book in enumerate(library.library):
+                if book.id == id:
+                    del library.library[inx]
+                    return f'{library.library} \n Книга удалена успешно'
 
         return f'Книга с таким id: {id} не найденa'
 
@@ -89,13 +90,16 @@ class Library:
         преобразовывает текст файла в объект List
         :return: list(dict) or str
         """
-        try:
-            with open(self.path, 'r', encoding='utf-8') as file:
-                my_lib = file.read()
-        except FileNotFoundError:
-            return f'Такого файла не существует'
-        else:
-            return json.loads(my_lib)
+        # try:
+        #     with Library() as library:
+        #         return library.self.library
+        # except FileNotFoundError:
+        #     return f'Такого файла не существует'
+        # else:
+        #     return json.loads(my_lib)
+
+        with Library() as library:
+            return library.library
 
     def search_book(self, some_item) -> dict:
         """
@@ -103,32 +107,30 @@ class Library:
         :param some_item: любой возможный аргумент для поиска(по имени, по автору, по году)
         :return: dict
         """
-        my_lib = self.load_books()
-        for inx, book in enumerate(my_lib):
-            if isinstance(int(some_item), int):
-                if some_item == book.get('year'):
-                    return book
-            else:
-                if some_item == book.get('title'):
-                    return book
-                if some_item == book.get('author'):
-                    return book
+        with Library() as library:
+            for inx, book in enumerate(library.library):
+                if isinstance(int(some_item), int):
+                    if some_item == book.year:
+                        return book
+                else:
+                    if some_item == book.title:
+                        return book
+                    if some_item == book.author:
+                        return book
         return 'Такой книги не существует'
 
-    def change_status(self, id: int, status: str) -> dict:
+    def change_status(self, id: int, status: str) -> Book:
         """
         Этот метод меняет статус книги на новый и записывает в файл новые данные
         :param id: Айди книги
         :param status: новый статус для книги
-        :return: dict
+        :return: Book
         """
-        my_lib = self.load_books()
-        for book in my_lib:
-            if id == book.get('id'):
-                book['status'] = status
-                with open(self.path, 'w', encoding='utf-8') as file:
-                    file.write(json.dumps(my_lib, ensure_ascii=False))
-                return book
+        with Library() as library:
+            for book in library.library:
+                if id == book.id:
+                    book.status = status
+                    return book
 
         return f'Книга с таким id: {id} не найденa'
 
