@@ -141,7 +141,7 @@ def main():
         parser_load.set_defaults(func=library.load_books)
 
         # Add command
-        parser_add = subparsers.add_parser('add', help='Добавляет новую книгу в библиотеку')
+        parser_add = subparsers.add_parser('add', help='Добавляет новую книгу в библиотеку: название, автор, год выпуска')
         parser_add.add_argument('title', type=str, help='Название книги')
         parser_add.add_argument('author', type=str, help='Имя автора')
         parser_add.add_argument('year', type=int, help='Год выпуска')
@@ -154,12 +154,12 @@ def main():
 
 
         #Search command
-        parser_search = subparsers.add_parser('search', help='Ищет книгу по заданному аргументу')
+        parser_search = subparsers.add_parser('search', help='Ищет книгу по заданному аргументу(название, автор, год)')
         parser_search.add_argument('item', type=str, help='Поиск книги по заданой информации')
         parser_search.set_defaults(func=library.search_book)
 
         # Change command
-        parser_change = subparsers.add_parser('change', help='Заменяет статус книги')
+        parser_change = subparsers.add_parser('change', help='Заменяет статус книги, принимает id-книги, новый статус')
         parser_change.add_argument('id', type=int, help='ID книги из которой нужно изменить статус')
         parser_change.add_argument('status', type=str, help='The item to change')
         parser_change.set_defaults(func=library.change_status)
