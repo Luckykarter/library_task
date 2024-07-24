@@ -30,7 +30,7 @@ class Book:
 
     @classmethod
     def from_json(cls, some_json):
-        new_book = cls(some_json.get('title'), some_json.get('author'), some_json.get('year'))
+        new_book = cls(some_json.get('id'), some_json.get('title'), some_json.get('author'), int(some_json.get('year')))
         return new_book
 
 
@@ -51,7 +51,7 @@ class Library:
     def load_library(self):
         with open(self.path, 'r', encoding='utf-8') as f:
             self.library = json.loads(f.read())
-        self.library = [book.from_json() for book in self.library]
+        self.library = [Book.from_json(book) for book in self.library]
         return self.library
 
     def save_library(self):
@@ -77,7 +77,7 @@ class Library:
         :return: Сообщение об удалении / Сообщение об ошибки при удалении
         """
 
-        for inx, book in enumerate(library.library):
+        for inx, book in enumerate(self.library):
             if book.id == id:
                 del self.library[inx]
                 return f'{self.library} \n Книга удалена успешно'
@@ -127,62 +127,55 @@ class Library:
         return f'Книга с таким id: {id} не найденa'
 
 
+def main():
+    with Library(FOLDER) as library:
+
+        parser = argparse.ArgumentParser(description="""Manage library with load, add, delete, search, and change commands""")
+
+        subparsers = parser.add_subparsers(title="Commands", description="""Загрузка всех книг-load, добавить книгу-add,
+                                                                            удалить книгу-delete, для поиска книги-search,
+                                                                            изменить статус-change""",
+                                           help="Use one of these commands")
+        # Load command
+        parser_load = subparsers.add_parser('load', help='Загружает все книги из библиотеки')
+        parser_load.set_defaults(func=library.load_books)
+
+        # Add command
+        parser_add = subparsers.add_parser('add', help='Добавляет новую книгу в библиотеку')
+        parser_add.add_argument('title', type=str, help='Название книги')
+        parser_add.add_argument('author', type=str, help='Имя автора')
+        parser_add.add_argument('year', type=int, help='Год выпуска')
+        parser_add.set_defaults(func=library.add_book)
+
+        # Delete command
+        parser_delete = subparsers.add_parser('delete', help='Удаляет книгу по заданому id')
+        parser_delete.add_argument('id', type=int, help='ID книги, которую удалить')
+        parser_delete.set_defaults(func=library.delete_book)
 
 
-parse = argparse.ArgumentParser("""Чтобы узнать нажмите:
-                                    (l) - о наличии книг в библиотеке,
-                                    (a) - добавить книгу,
-                                    (s) - найти книгу по автору, по названию или по году выпуска,
-                                    (d) - удалить книгу,
-                                    (q) - для выхода из приложения
-                                    """
-                                )
-parse.add_argument('-l', '--load', help='Показывает какие книги есть в библиотеке')
-parse.add_argument('-a', '--add', help='Добавляет книгу в библиотеку')
+        #Search command
+        parser_search = subparsers.add_parser('search', help='Ищет книгу по заданному аргументу')
+        parser_search.add_argument('item', type=str, help='Поиск книги по заданой информации')
+        parser_search.set_defaults(func=library.search_book)
 
-# def hello():
-#     print('Добро пожаловатьб чтобы вы хотели сделать?')
-#
-#
-# def running_app():
-#     print("Чтобы узнать нажмите:")
-#     print("(1) - о наличии книг в библиотеке")
-#     print("(2) - добавить книгу")
-#     print("(3) - найти книгу по автору, по названию или по году выпуска")
-#     print("(4) - удалить книгу")
-#     print("q - для выхода из приложения")
-#     my_lib = Library(FOLDER)
-#     while True:
-#         a = input('Введите что вы хотите сделать \n')
-#         match a:
-#             case '1':
-#                 print(my_lib.load_books())
-#             case '2':
-#                 title = input("Введите название книги: \n")
-#                 author = input("Введите автора книги \n")
-#                 try:
-#                     year = int(input("Введите год издания книги \n"))
-#                 except ValueError as e:
-#                     print('Вы указали не верный формат года')
-#                 else:
-#                     print(my_lib.add_book(title, author, year))
-#             case '3':
-#                 attribute_search = input('Введите атрибут для поиска книги \n')
-#                 print(my_lib.search_book(attribute_search))
-#             case '4':
-#                 id_book = int(input('Введите id книги, которую вы хотите удалить'))
-#                 print(my_lib.delete_book(id_book))
-#             case 'q' | 'й':
-#                 print('Всего хорошего')
-#                 break
-#             case _:
-#                 print('Вы ввели не верное значение, попробуем все заново')
-#                 running_app()
-#
-#
-# def main():
-hello()
-running_app()
+        # Change command
+        parser_change = subparsers.add_parser('change', help='Заменяет статус книги')
+        parser_change.add_argument('id', type=int, help='ID книги из которой нужно изменить статус')
+        parser_change.add_argument('status', type=str, help='The item to change')
+        parser_change.set_defaults(func=library.change_status)
+
+        args = parser.parse_args()
+
+        if hasattr(args, 'func'):
+            args.func(args)
+        else:
+            parser.print_help()
+
+
+
+
+
+
 
 if __name__ == '__main__':
     main()
