@@ -74,7 +74,12 @@ class Library:
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.save_library()  # сохранить в файл на выходе
 
-    def load_library(self):
+    def load_library(self)-> list:
+        """
+        Метод ппроверяет, есть ли в ппути файл, если его нет то возвращает пусстой список. В другом случае открывает
+        файл преобразовывает значения файлов в экземпляры класса Book, записывает в список self.library
+        :return: self.library
+        """
         if not os.path.isfile(self.path):
             return []
         with open(self.path, 'r', encoding='utf-8') as f:
@@ -95,7 +100,7 @@ class Library:
         :param year: Год выпуска
         :return: str
         """
-        if len(self.library) > 1:
+        if len(self.library) > 0:
             id_book = self.library[len(self.library) - 1].id + 1
         else:
             id_book = len(self.library) + 1
@@ -128,7 +133,7 @@ class Library:
         for book in self.library:
             table_library.append([str(value) for value in book.value()])
 
-        return print_pretty_table(table_library)
+        print_pretty_table(table_library)
 
     def search_book(self, some_item) -> dict:
         """
