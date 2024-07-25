@@ -27,6 +27,8 @@ def print_pretty_table(data, cell_sep=' | ', header_separator=True):
             result.append(item)
 
         print(cell_sep.join(result))
+
+
 class Book:
 
     def __init__(self, id: int, title: str, author: str, year: int, status: str = 'в наличии') -> None:
@@ -38,6 +40,9 @@ class Book:
 
     def __str__(self):
         return f'{self.id}, {self.title}, {self.author}, {self.year}, {self.status}'
+
+    def value(self):
+        return self.id, self.title, self.author, self.year, self.status
 
     def json(self):
         result = {
@@ -90,7 +95,10 @@ class Library:
         :param year: Год выпуска
         :return: str
         """
-        id_book = len(self.library) + 1
+        if len(self.library) > 1:
+            id_book = self.library[len(self.library) - 1].id + 1
+        else:
+            id_book = len(self.library) + 1
         book = Book(id_book, title, author, year)
         self.library.append(book)
 
@@ -105,22 +113,22 @@ class Library:
             if book.id == id:
                 del self.library[inx]
                 self.load_books()
-                print('Книга удалена успешно')
+                return 'Книга удалена успешно'
 
         return f'Книга с таким id: {id} не найденa'
 
-    def load_books(self) -> list:
+    def load_books(self) -> str:
         """
-        Этот метод пытается найти файл self.path и прочитать его. Если файл существует, он читает и
-        преобразовывает текст файла в объект List
-        :return: list(Books)
+        Этот метод проходит по списку книг(self.library), преобразуя каждую книгу в список атрибутов, передает
+        в функцию print_pretty_table. Эта функция выводит в табличном стиле
+        :return: str
         """
 
         table_library = [['ID', 'TITLE', 'AUTHOR', 'YEAR', 'STATUS']]
         for book in self.library:
-            table_library.extend(book)
+            table_library.append([str(value) for value in book.value()])
 
-        print_pretty_table(table_library)
+        return print_pretty_table(table_library)
 
     def search_book(self, some_item) -> dict:
         """
@@ -128,16 +136,21 @@ class Library:
         :param some_item: любой возможный аргумент для поиска(по имени, по автору, по году)
         :return: dict
         """
-        for inx, book in enumerate(self.library):
-            if isinstance(int(some_item), int):
+        try:
+            some_item = int(some_item)
+        except ValueError:
+            pass
+        else:
+            for inx, book in enumerate(self.library):
                 if some_item == book.year:
-                    print(book)
-            else:
-                if some_item == book.title:
-                    print(book)
-                if some_item == book.author:
-                    print(book)
-        print('Такой книги не существует')
+                    return str(book)
+
+        for inx, book in enumerate(self.library):
+            if some_item == book.title:
+                return str(book)
+            if some_item == book.author:
+                return str(book)
+        return 'Такой книги нет в наличии'
 
     def change_status(self, id: int, status: str) -> Book:
         """
@@ -150,26 +163,32 @@ class Library:
         for book in self.library:
             if id == book.id:
                 book.status = status
-                return book
+                return self.load_books()
+
 
         return f'Книга с таким id: {id} не найденa'
-
 
 
 def add_book(library: Library, args):
     library.add_book(args.title, args.author, args.year)
 
-def load_books(library: Library):
-    library.load_books()
+
+def load_books(library: Library, arg):
+    return library.load_books()
+
 
 def delete_book(library: Library, args):
-    library.delete_book(args.id)
+    return library.delete_book(args.id)
+
 
 def change_status(library: Library, args):
-    library.change_status(args.id, args.status)
+    return library.change_status(args.id, args.status)
+
 
 def search_book(library: Library, arg):
-    library.search_book(arg.item)
+    return library.search_book(arg.item)
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="""Manage library with load, add, delete, search, and change commands""")
@@ -186,16 +205,16 @@ def main():
     parser_add.add_argument('year', type=int, help='Год выпуска')
     parser_add.set_defaults(func=add_book)
 
-    #Delete command
+    # Delete command
     parser_delete = subparsers.add_parser('delete', help='Удаляет книгу по заданому id')
     parser_delete.add_argument('id', type=int, help='ID книги, которую удалить')
     parser_delete.set_defaults(func=delete_book)
 
-    #Load
+    # Load
     parser_load = subparsers.add_parser('load', help='Выводит все книги из файла')
     parser_load.set_defaults(func=load_books)
 
-    #Search command
+    # Search command
     parser_search = subparsers.add_parser('search', help='Ищет книгу по заданному аргументу(название, автор, год)')
     parser_search.add_argument('item', type=str, help='Поиск книги по заданой информации')
     parser_search.set_defaults(func=search_book)
@@ -210,9 +229,10 @@ def main():
 
     if hasattr(args, 'func'):
         with Library(FOLDER) as library:
-            args.func(library, args)
+            print(args.func(library, args))
     else:
         parser.print_help()
+
 
 if __name__ == '__main__':
     main()
