@@ -107,6 +107,7 @@ class Library:
         book = Book(id_book, title, author, year)
         self.library.append(book)
 
+
     def delete_book(self, id: int) -> str:
         """
         Метод удаляет из файла книгу по его id
@@ -120,7 +121,7 @@ class Library:
                 self.load_books()
                 return 'Книга удалена успешно'
 
-            return f'Книга с таким id: {id} не найденa'
+        return f'Книга с таким id: {id} не найденa'
 
     def load_books(self) -> str:
         """
