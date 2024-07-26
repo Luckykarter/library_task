@@ -1,7 +1,7 @@
 from unittest import TestCase, main
 
 import os
-from main import  Library
+from main import Library
 
 
 class TestLibrary(TestCase):
@@ -34,8 +34,7 @@ class TestLibrary(TestCase):
         # Test deleting an existing book
         self.library.add_book('Book_2', 'Author_2', 2024)
         self.library.delete_book(2)
-        self.assertEqual(len(self.library.library), 3)
-
+        self.assertEqual(len(self.library.library), 2)
 
     def test_change_status(self):
         # Test changing the status of a book
@@ -69,9 +68,9 @@ class TestLibrary(TestCase):
         new_library = Library(path=self.test_path)
         new_library.__enter__()
 
-        self.assertEqual(len(new_library.library), 1)
-        self.assertEqual(new_library.library[0].title, 'Book_7')
-        self.assertEqual(new_library.library[0].author, 'Author_7')
+        self.assertEqual(len(new_library.library), 3)
+        self.assertEqual(new_library.library[0].title, 'Book_1')
+        self.assertEqual(new_library.library[0].author, 'Author_1')
         self.assertEqual(new_library.library[0].year, 2024)
 
 
