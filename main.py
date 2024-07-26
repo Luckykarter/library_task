@@ -120,7 +120,7 @@ class Library:
                 self.load_books()
                 return 'Книга удалена успешно'
 
-        return f'Книга с таким id: {id} не найденa'
+            return f'Книга с таким id: {id} не найденa'
 
     def load_books(self) -> str:
         """
