@@ -2,6 +2,10 @@
 import os.path
 import argparse
 import json
+from dataclasses import dataclass, asdict
+from typing import Dict
+
+from literals import BOOK_DOES_NOT_EXIST, NO_BOOKS_IN_LIBRARY, BOOK_NOT_FOUND
 
 FOLDER = 'lib.json'
 
@@ -13,7 +17,7 @@ def print_pretty_table(data, cell_sep=' | ', header_separator=True):
     col_width = []
     for col in range(cols):
         columns = [data[row][col] for row in range(rows)]
-        col_width.append(len(max(columns, key=len)))
+        col_width.append(len(max(columns, key=lambda x: len(str(x)))))
 
     separator = "-+-".join('-' * n for n in col_width)
 
@@ -23,48 +27,28 @@ def print_pretty_table(data, cell_sep=' | ', header_separator=True):
 
         result = []
         for col in range(cols):
-            item = data[row][col].rjust(col_width[col])
+            item = str(data[row][col]).rjust(col_width[col])
             result.append(item)
 
         print(cell_sep.join(result))
 
 
+@dataclass
 class Book:
-
-    def __init__(self, id: int, title: str, author: str, year: int, status: str = 'в наличии') -> None:
-        self.id = id
-        self.title = title
-        self.author = author
-        self.year = year
-        self.status = status
+    id: int
+    title: str
+    author: str
+    year: int
+    status: str = 'в наличии'
 
     def __str__(self):
-        return f'{self.id}, {self.title}, {self.author}, {self.year}, {self.status}'
-
-    def value(self):
-        return self.id, self.title, self.author, self.year, self.status
-
-    def json(self):
-        result = {
-            'id': self.id,
-            'title': self.title,
-            'author': self.author,
-            'year': self.year,
-            'status': self.status
-        }
-        return result
-
-    @classmethod
-    def from_json(cls, some_json):
-        new_book = cls(some_json.get('id'), some_json.get('title'), some_json.get('author'), int(some_json.get('year')))
-        return new_book
+        for k, v in asdict(self).items():
+            print(f'{k}\t{v}')
 
 
 class Library:
-    def __init__(self, path: str, library: list = None) -> None:
-        if library is None:
-            library = []
-        self.library = library
+    def __init__(self, path: str) -> None:
+        self.library: Dict[int: Book] = {}
         self.path = path
 
     def __enter__(self):
@@ -74,113 +58,65 @@ class Library:
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.save_library()  # сохранить в файл на выходе
 
-    def load_library(self)-> list:
-        """
-        Метод ппроверяет, есть ли в ппути файл, если его нет то возвращает пусстой список. В другом случае открывает
-        файл преобразовывает значения файлов в экземпляры класса Book, записывает в список self.library
-        :return: self.library
-        """
+    def load_library(self) -> dict:
         if not os.path.isfile(self.path):
-            return []
+            return {}
         with open(self.path, 'r', encoding='utf-8') as f:
-            self.library = json.loads(f.read())
-        self.library = [Book.from_json(book) for book in self.library]
-        return self.library
+            library = json.loads(f.read())
+            for k, v in library.items():
+                library[k] = Book(**v)
+        return library
 
     def save_library(self):
         if self.library:
             with open(self.path, 'w', encoding='utf-8') as f:
-                f.write(json.dumps([book.json() for book in self.library]))
+                lib_json = {k: asdict(v) for k, v in self.library.items()}
+                f.write(json.dumps(lib_json))
 
-    def add_book(self, title: str, author: str, year: int) -> str:
-        """
-        Добавляет книгу в список self.library
-        :param title: Название книги
-        :param author: Автор
-        :param year: Год выпуска
-        :return: str
-        """
-        if len(self.library) > 0:
-            id_book = self.library[len(self.library) - 1].id + 1
-        else:
-            id_book = len(self.library) + 1
-        book = Book(id_book, title, author, year)
-        self.library.append(book)
+    def add_book(self, **kwargs) -> Book:
+        book_id = len(self.library) + 1
+        book = Book(id=book_id, **kwargs)
+        self.library[book_id] = book
+        return book
 
+    def delete_book(self, book_id: int):
+        if book_id not in self.library:
+            raise KeyError(BOOK_DOES_NOT_EXIST.format(book_id=book_id))
+        return self.library.pop(book_id)
 
-    def delete_book(self, id: int) -> str:
-        """
-        Метод удаляет из файла книгу по его id
-        :param id: id книги
-        :return: Сообщение об удалении / Сообщение об ошибки при удалении
-        """
-
-        for inx, book in enumerate(self.library):
-            if book.id == id:
-                del self.library[inx]
-                self.load_books()
-                return 'Книга удалена успешно'
-
-        return f'Книга с таким id: {id} не найденa'
-
-    def load_books(self) -> str:
-        """
-        Этот метод проходит по списку книг(self.library), преобразуя каждую книгу в список атрибутов, передает
-        в функцию print_pretty_table. Эта функция выводит в табличном стиле
-        :return: str
-        """
-
-        table_library = [['ID', 'TITLE', 'AUTHOR', 'YEAR', 'STATUS']]
-        for book in self.library:
-            table_library.append([str(value) for value in book.value()])
-
+    def show_books(self):
+        if not self.library:
+            print(NO_BOOKS_IN_LIBRARY)
+            return
+        table_library = [list(asdict(next(iter(self.library.values()))).keys())]
+        for book in self.library.values():
+            table_library.append(list(asdict(book).values()))
         print_pretty_table(table_library)
 
-    def search_book(self, some_item) -> dict:
-        """
-        Этот метод ищет книгу по заданному параметру и возвращает эту книгу
-        :param some_item: любой возможный аргумент для поиска(по имени, по автору, по году)
-        :return: dict
-        """
-        try:
-            some_item = int(some_item)
-        except ValueError:
-            pass
-        else:
-            for inx, book in enumerate(self.library):
-                if some_item == book.year:
-                    return str(book)
+    def search_book(self, search_string: str) -> Book:
+        for book in self.library.values():
+            if any((search_string == book.title,
+                    search_string == book.author,
+                    search_string == str(book.year))):
+                return book
+        raise KeyError(BOOK_NOT_FOUND.format(search_string))
 
-        for inx, book in enumerate(self.library):
-            if some_item == book.title:
-                return str(book)
-            if some_item == book.author:
-                return str(book)
-        return 'Такой книги нет в наличии'
-
-    def change_status(self, id: int, status: str) -> Book:
-        """
-        Этот метод меняет статус книги на новый и записывает в файл новые данные
-        :param id: Айди книги
-        :param status: новый статус для книги
-        :return: Book
-        """
-
-        for book in self.library:
-            if id == book.id:
-                book.status = status
-                return self.load_books()
-
-
-        return f'Книга с таким id: {id} не найденa'
+    def change_status(self, book_id: int, status: str) -> Book:
+        if book_id not in self.library:
+            raise KeyError(BOOK_DOES_NOT_EXIST.format(book_id=book_id))
+        self.library[book_id].status = status
+        return self.library[book_id]
 
 
 def add_book(library: Library, args):
-    library.add_book(args.title, args.author, args.year)
+    kwargs = vars(args)
+    kwargs.pop('func')
+    book = library.add_book(**kwargs)
+    print(f"Book {book} successfully added")
 
 
-def load_books(library: Library, arg):
-    return library.load_books()
+def show_books(library: Library, arg):
+    library.show_books()
 
 
 def delete_book(library: Library, args):
@@ -218,7 +154,7 @@ def main():
 
     # Load
     parser_load = subparsers.add_parser('load', help='Выводит все книги из файла')
-    parser_load.set_defaults(func=load_books)
+    parser_load.set_defaults(func=show_books)
 
     # Search command
     parser_search = subparsers.add_parser('search', help='Ищет книгу по заданному аргументу(название, автор, год)')
@@ -235,7 +171,7 @@ def main():
 
     if hasattr(args, 'func'):
         with Library(FOLDER) as library:
-            print(args.func(library, args))
+            args.func(library, args)
     else:
         parser.print_help()
 
